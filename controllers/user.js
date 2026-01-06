@@ -23,19 +23,24 @@ exports.read = (req, res) => {
     return res.json(req.profile);
 };
 
-exports.update = (req, res) => {
-    User.findOneAndUpdate({_id: req.profile._id}, {$set: req.profile}, {new: true},
-        (err, user)=> {
-            if (err) {
-                return res.status(400).json({
-                    error: 'You are not authorized to perform this action'
-                })
-            }
-            user.hashed_password = undefined;
-            user.salt = undefined;
-            res.json(user);
-        }
-    )
+exports.update = async (req, res) => {
+    try {
+        let user = req.profile;
+        user.name = req.body.name || user.name;
+        user.email = req.body.email || user.email;
+
+        await user.save();
+
+        user.hashed_password = undefined;
+        user.salt = undefined;
+        res.json(user);
+    }
+    catch (err) {
+        return res.status(400).json({
+            error: "You are not authorized to perform this action"
+        });
+    }
+    
 };
 
 exports.addOrderToUserHistory = (req, res, next) => {

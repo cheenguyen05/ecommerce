@@ -25,50 +25,81 @@ exports.read = (req, res) => {
 };
 
 exports.create = (req, res) => {
-    let form = new formidable.IncomingForm()
-    form.keepExtensions = true
+    console.log("CREATE PRODUCT API CALLED");
+
+    let form = new formidable.IncomingForm();
+    form.keepExtensions = true;
+
     form.parse(req, async (err, fields, files) => {
-        if(err) {
+
+        
+        if (err) {
+            console.log(" Form parse error:", err);
             return res.status(400).json({
                 error: 'Image could not be uploaded'
-            })
+            });
         }
 
-        //check for all fields
-        const {name, description, price, category, quantity, shipping} = fields
+        // Check required fields
+        const { name, description, price, category, quantity, shipping } = fields;
 
         if (!name || !description || !price || !category || !quantity || !shipping) {
+            console.log(" Missing required fields");
             return res.status(400).json({
-            error: "All fields are required"});
+                error: "All fields are required"
+            });
+        }
+
+        // ép giá trị trường
+        for (let key in fields) {
+          if (Array.isArray(fields[key])) {
+            fields[key] = fields[key][0];
+          }
         }
 
         let product = new Product(fields);
-
-        //1kb = 1000
-        // 1mb = 1000000
-
+  
+        // Handle image upload
         if (files.photo) {
-            //console.log("FILES PHOTO: ", files.photo);
-            if (files.photo.size > 1000000) {
-              return res.status(400).json({
-                error: "Image should be less than 1mb in size",
-              });
-            }
-            product.photo.data = fs.readFileSync(files.photo.filepath); // change path to filepath
-            product.photo.contentType = files.photo.mimetype; // change typt to mimetype
-           }
+            console.log("Processing uploaded photo...");
 
-        try {
-            const data = await category.save();
-            res.json({data});
-        } catch (err) {
-            return res.status(400).json({
-                  error: errorHandler(err)
-              });
+            const photoFile = Array.isArray(files.photo) ? files.photo[0] : files.photo;
+
+            if (files.photo.size > 1000000) {
+                console.log("Image too large:", files.photo.size);
+                return res.status(400).json({
+                    error: "Image should be less than 1mb in size"
+                });
+            }
+
+            try {
+                product.photo.data = fs.readFileSync(photoFile.filepath);
+                product.photo.contentType = photoFile.mimetype;
+                console.log("Photo saved to product object");
+            } catch (e) {
+                console.log("Error reading photo file:", e);
+                console.log("files.photo =", files.photo);
+
+            }
+        } else {
+            console.log("No photo uploaded");
         }
-     });
-            
+
+        // Save product
+        try {
+            console.log("Saving product to database...");
+            const data = await product.save();
+            console.log("Product saved successfully:", data);
+            res.json({ data });
+        } catch (err) {
+            console.log(" Error saving product:", err);
+            return res.status(400).json({
+                error: errorHandler(err)
+            });
+        }
+    });
 };
+
 
 exports.remove = async (req, res) => {
     try {
@@ -81,51 +112,86 @@ exports.remove = async (req, res) => {
     }
 };
 
-exports.update = async (req, res) => {
-    let form = new formidable.IncomingForm()
-    form.keepExtensions = true
+exports.update = (req, res) => {
+    console.log("UPDATE PRODUCT API CALLED");
+
+    let form = new formidable.IncomingForm();
+    form.keepExtensions = true;
+
     form.parse(req, async (err, fields, files) => {
-        if(err) {
+
+        
+        if (err) {
+            console.log(" Form parse error:", err);
             return res.status(400).json({
                 error: 'Image could not be uploaded'
-            })
+            });
         }
 
-        //check for all fields
-        //const {name, description, price, category, quantity, shipping} = fields
+        // Check required fields
+        const { name, description, price, category, quantity, shipping } = fields;
 
-        //if (!name || !description || !price || !category || !quantity || !shipping) {
-        //    return res.status(400).json({
-        //    error: "All fields are required"});
-        //}
-
-        let product = req.product
-        product = _.extend(product, fields)
-
-        //1kb = 1000
-        // 1mb = 1000000
-
-        if (files.photo) {
-            //console.log("FILES PHOTO: ", files.photo);
-            if (files.photo.size > 1000000) {
-              return res.status(400).json({
-                error: "Image should be less than 1mb in size",
-              });
-            }
-            product.photo.data = fs.readFileSync(files.photo.filepath); // change path to filepath
-            product.photo.contentType = files.photo.mimetype; // change typt to mimetype
-           }
-
-        try {
-            const data = await product.save(); // dùng promise
-            res.json(data);
-        } catch (error) {
+        if (!name || !description || !price || !category || !quantity || !shipping) {
+            console.log(" Missing required fields");
             return res.status(400).json({
-                error: errorHandler(error)
+                error: "All fields are required"
+            });
+        }
+
+        // ép giá trị trường
+        for (let key in fields) {
+          if (Array.isArray(fields[key])) {
+            fields[key] = fields[key][0];
+          }
+        }
+
+        let product = req.product;
+        product = _.extend(product, fields);
+  
+        // Handle image upload
+        if (files.photo) {
+            console.log("Processing uploaded photo...");
+
+            const photoFile = Array.isArray(files.photo) ? files.photo[0] : files.photo;
+
+            if (files.photo.size > 1000000) {
+                console.log("Image too large:", files.photo.size);
+                return res.status(400).json({
+                    error: "Image should be less than 1mb in size"
+                });
+            }
+
+            try {
+                product.photo.data = fs.readFileSync(photoFile.filepath);
+                product.photo.contentType = photoFile.mimetype;
+                console.log("Photo saved to product object");
+            } catch (e) {
+                console.log("Error reading photo file:", e);
+                return res.status(400).json({
+                    error: "Error reading photo file"
+                });
+                console.log("files.photo =", files.photo);
+
+            }
+        } else {
+            console.log("No photo uploaded");
+        }
+
+        // Save product
+        try {
+            console.log("Saving product to database...");
+            const data = await product.save();
+            console.log("Product saved successfully:", data);
+            res.json({ data });
+        } catch (err) {
+            console.log(" Error saving product:", err);
+            return res.status(400).json({
+                error: errorHandler(err)
             });
         }
     });
 };
+
 
 /**
  * sell / arrival
@@ -135,7 +201,7 @@ exports.update = async (req, res) => {
  */ 
 
 exports.list = async (req, res) => {
-    let order = req.query.order ? req.query.order : 'asc';
+    let order = req.query.order === 'desc' ? -1 : 1;
     let sortBy = req.query.sortBy ? req.query.sortBy : '_id';
     let limit = req.query.limit ? parseInt(req.query.limit) : 6;
 
@@ -172,7 +238,7 @@ exports.listRelated = async (req, res) => {
         res.json(products);
     } catch (err) {
         return res.status(400).json({
-            error: errorHandler(err)
+            error: "Products not found"
         });
     }
    
@@ -200,26 +266,30 @@ exports.listCategories = async (req, res) => {
  */
  
 exports.listBySearch = async (req, res) => {
-    let order = req.body.order ? req.body.order : "desc";
+    let order = req.body.order === 'asc' ? 1 : -1;
     let sortBy = req.body.sortBy ? req.body.sortBy : "_id";
     let limit = req.body.limit ? parseInt(req.body.limit) : 100;
-    let skip = parseInt(req.body.skip);
+    let skip = req.body.skip ? parseInt(req.body.skip) : 0;
+
+
     let findArgs = {};
  
     // console.log(order, sortBy, limit, skip, req.body.filters);
     // console.log("findArgs", findArgs);
  
-    for (let key in req.body.filters) {
-        if (req.body.filters[key].length > 0) {
-            if (key === "price") {
-                // gte -  greater than price [0-10]
-                // lte - less than
-                findArgs[key] = {
-                    $gte: req.body.filters[key][0],
-                    $lte: req.body.filters[key][1]
-                };
-            } else {
-                findArgs[key] = req.body.filters[key];
+    if (req.body.filters) {
+        for (let key in req.body.filters) {
+            if (req.body.filters[key].length > 0) {
+                if (key === "price") {
+                    // gte -  greater than price [0-10]
+                    // lte - less than
+                    findArgs[key] = {
+                        $gte: req.body.filters[key][0],
+                        $lte: req.body.filters[key][1]
+                    };
+                } else {
+                    findArgs[key] = req.body.filters[key];
+                }
             }
         }
     }
@@ -242,12 +312,12 @@ exports.listBySearch = async (req, res) => {
     }
 };
 
-exports.photo = (req, res, next) => {
-    if (req.product.photo.data) {
-        res.set('Content-Type', req.product.photo.contentType)
+exports.photo = (req, res) => {
+    if (req.product.photo && req.product.photo.data) {
+        res.set('Content-Type', req.product.photo.contentType);
         return res.send(req.product.photo.data);
     }
-    next();
+    return res.status(404).send("No photo");
 };
 
 exports.listSearch = async (req, res) => {

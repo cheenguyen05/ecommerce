@@ -46,18 +46,17 @@ exports.create = (req, res) => {
     });
 };
 
-exports.listOrders = (req, res) => {
-    Order.find()
-        .populate('user', '_id name address')
-        .sort('-created')
-        .exec((err, orders) => {
-            if (err) {
-                return res.status(400).json({
-                    error: errorHandler(error)
-                });
-            }
-            res.json(orders);
-        });
+exports.listOrders = async (req, res) => {
+  try {
+    const orders = await Order.find()
+      .populate('user', '_id name address')
+      .sort('-created')
+      .exec();
+
+    res.json(orders);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 };
 
 exports.getStatusValues = (req, res) => {
