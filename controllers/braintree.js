@@ -10,13 +10,12 @@ const gateway = new braintree.BraintreeGateway({
     privateKey: process.env.BRAINTREE_PRIVATE_KEY
 });
 
-
 exports.generateToken = (req, res) => {
-    gateway.clientToken.generate({}, function(err, response) {
+    gateway.clientToken.generate({}, (err, response) => {
         if (err) {
-            res.status(500).send(err);
+            res.status(500).json(err);
         } else {
-            res.send(response);
+            res.json(response);
         }
     });
 };
